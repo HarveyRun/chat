@@ -1,6 +1,8 @@
 <template>
     <div id="client">
-        <button @click="clearContent">清21除聊天内容</button>
+        <a-button @click="clearContent" type="primary">
+            清除内容
+        </a-button>
 		<div class="warp">
 			<div id="msgList" v-for="item in talkData" :key="item.id">
 				<div class="item" v-if="userId != item.selfUserId">
@@ -32,6 +34,7 @@
 </template>
 
 <script>
+import { mapActions,mapState } from "vuex";
 export default {
     name:"client",
     data () {
@@ -54,40 +57,20 @@ export default {
         }
     },
     created() {
-        if(window.WebSocket){
-            this.ws = new WebSocket('ws://127.0.0.1:7070?userid=123');
-
-            this.ws.onopen = this.wsOpen;
-            this.ws.onclose = this.wsClose;
-            this.ws.onerror = this.wsError;
-            this.ws.onmessage = this.wsMessage;
-        }
         localStorage.setItem("msgbody",JSON.stringify([]));
     },
+    computed:{
+        ...mapState(['number'])
+    },
+    mounted(){
+        console.dir(this)
+    },
     methods:{
-        //打开WebSocket连接后立刻发送一条消息
-        wsOpen(e){
-            console.dir(this.ws);
-        },
-        wsClose(e){
-            console.log("服务器关闭");
-        },
-        wsError(e){
-            console.log("连接出错");
-        },
-        wsMessage(e){
-            console.log("------client----------");
-            console.log(e);
-            // var json = JSON.parse(e.data);
-            
-//             //获取
-            // let msgBody = JSON.parse(localStorage.getItem("msgbody"));
-            // msgBody.push(json)
-            // this.talkData = msgBody;
-
-//             //存储
-            // localStorage.setItem("msgbody",JSON.stringify(this.talkData));
-
+        ...mapActions(['setNum']),
+        mmm(){
+            this.setNum('setNum', { number: 611 }).then((res)=>{
+                console.dir(res)
+            })
         },
         clearContent(){
             this.talkData.splice(0);
@@ -128,6 +111,11 @@ export default {
 </script>
 
 <style scoped>
+ul li{
+  list-style-type:none;
+  height:24px;
+  line-height: 24px;
+}
     .warp{
         position: relative;
         border:2px solid #d9d9d9;
