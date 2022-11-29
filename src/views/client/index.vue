@@ -1,6 +1,6 @@
 <template>
     <div id="client">
-        <button @click="clearContent">清除聊天内容</button>
+        <button @click="clearContent">清21除聊天内容</button>
 		<div class="warp">
 			<div id="msgList" v-for="item in talkData" :key="item.id">
 				<div class="item" v-if="userId != item.selfUserId">
