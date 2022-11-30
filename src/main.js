@@ -3,12 +3,13 @@ import App from './App'
 import router from './router'
 import store from './store'
 import Antd from 'ant-design-vue';
-import 'ant-design-vue/dist/antd.css';
-
-Vue.use(Antd);
+import EventBus from './lib/eventBus'
+import 'ant-design-vue/dist/antd.css'
 
 Vue.config.productionTip = false;
-Vue.prototype.$store = store;
+
+Vue.use(Antd);
+Vue.prototype.$EventBus = EventBus
 
 new Vue({
 	el: "#app",

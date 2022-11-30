@@ -5,8 +5,50 @@
 </template>
 
 <script>
+import { mapActions, mapGetters } from "vuex";
 export default {
-  name: 'App'
+  name: 'App',
+  created(){
+    this.$EventBus.$on('emitAppConnect', (data) => {
+      if(window.WebSocket && data && data != "null"){
+          this.$store.dispatch('wsMoules/createConnect', { userId: data }).then(()=>{
+				    this.getWs.onmessage = this.wsMessage;
+          })
+      }else{
+         alert("连接失败");
+      }
+    })
+  },
+  computed:{
+      ...mapGetters(['getWs','getChatList']),
+  },
+  mounted(){
+  },
+  methods:{
+    ...mapActions('wsMoules',['setChatList']),
+     hanndleBusiess(data){
+        return new Promise(resolve => {
+            let msg = JSON.parse(data.data);
+            let currUserId = JSON.parse(localStorage.getItem("chat_user_infomation")).userId;
+            if(currUserId == msg.takeUserId ||  msg.byTakeUserIds.indexOf(currUserId) > -1){
+              //获取
+              let msgBody = JSON.parse(localStorage.getItem("msgbody"));
+              msgBody.push(msg)
+
+              //存储
+              localStorage.setItem("msgbody",JSON.stringify(msgBody));
+              resolve(msgBody);
+            }
+        });
+     },
+     wsMessage(e){
+        console.log("---------- App page message callback ----------");
+        console.dir(e.data);
+        this.hanndleBusiess(e).then((res)=>{
+            this.setChatList(res)
+        });
+     }
+  }
 }
 </script>
 

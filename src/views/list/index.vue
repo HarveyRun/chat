@@ -20,17 +20,17 @@
 </template>
 
 <script>
-import { mapActions } from "vuex";
 export default {
     name:"List",
     data () {
         return {
+            sName: "",
             data: [{
                 id: 1,
                 name: "Evans",
                 desc: "好的",
                 time: "20:01",
-                userId: 123
+                userId: 456
             },{
                 id: 2,
                 name: "Roy",
@@ -59,41 +59,15 @@ export default {
         
     },
     computed:{
-
     },
     mounted(){
-        
     },
     methods:{
-        ...mapActions(['setNum']),
         chatRoom(data){
-            if(window.WebSocket){
-                let wsUrl = `ws://127.0.0.1:7070?userid=${data}`
-                this.ws = new WebSocket(wsUrl);
-
-                this.ws.onopen = this.wsOpen;
-                this.ws.onclose = this.wsClose;
-                this.ws.onerror = this.wsError;
-                this.ws.onmessage = this.wsMessage;
-
-                this.$router.push({
-                    path: `/c`
-                });
-            }
-        },
-        //打开WebSocket连接后立刻发送一条消息
-        wsOpen(e){
-            console.dir(this.ws);
-        },
-        wsClose(e){
-            console.log("服务器关闭");
-        },
-        wsError(e){
-            console.log("连接出错");
-        },
-        wsMessage(e){
-            console.log("------client----------");
-            console.log(e);
+            this.$EventBus.$emit('emitAppConnect', data)
+            this.$router.push({
+                path: `/c`
+            });
         },
     }
 }

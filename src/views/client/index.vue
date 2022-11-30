@@ -4,19 +4,19 @@
             清除内容
         </a-button>
 		<div class="warp">
-			<div id="msgList" v-for="item in talkData" :key="item.id">
-				<div class="item" v-if="userId != item.selfUserId">
+			<div id="msgList" v-for="item in chatList" :key="item.id">
+				<div class="item" v-if="currUserId == item.takeUserId">
 					<div class="right_user">
 						<div class="main_right_user"><img :src="currUserInfo.userAvg"></div>
 						<div class="chat_right">
-							<div>{{ item.text }}</div>
+							<div>{{ item.content }}</div>
 						</div>
 					</div>
 				</div>
-				<div class="item" v-if="userId == item.selfUserId">
+				<div class="item" v-if="currUserId != item.takeUserId">
 					<div class="left_user">
 						<div class="chat_left">
-							<div>{{ item.text }}</div>
+							<div>{{ item.content }}</div>
 						</div>
 						<div class="corr_left_user"><img :src="talkUserInfo.userAvg"></div>
 					</div>
@@ -34,7 +34,7 @@
 </template>
 
 <script>
-import { mapActions,mapState } from "vuex";
+import { mapGetters,mapState } from "vuex";
 export default {
     name:"client",
     data () {
@@ -49,29 +49,25 @@ export default {
                 userId: 1,
                 userAvg:require('@/assets/1.jpg')
             },
+            currUserId:0,
             msgContent:"",
             isDisBtn:true,
-            isSelf: [],
             talkData: [],
-            ws:null,
+            ws:null
         }
     },
     created() {
         localStorage.setItem("msgbody",JSON.stringify([]));
+        this.currUserId = JSON.parse(localStorage.getItem("chat_user_infomation")).userId;
     },
     computed:{
-        ...mapState(['number'])
+        ...mapState('wsMoules',['wsExample','chatList']),
+        ...mapGetters(['getWs','getChatList']),
     },
     mounted(){
-        console.dir(this)
+        console.dir(this.getChatList)
     },
     methods:{
-        ...mapActions(['setNum']),
-        mmm(){
-            this.setNum('setNum', { number: 611 }).then((res)=>{
-                console.dir(res)
-            })
-        },
         clearContent(){
             this.talkData.splice(0);
         },
@@ -83,24 +79,16 @@ export default {
             }
         },
         fire(){
-            this.isSelf = true;
             let msgObj = {
-                id: new Date().getTime(),
-                takeUser:2,
-                selfUserId: 1,
-                text: this.msgContent,
-                timestamp: new Date().getTime()
+                id: new Date().getTime(),  //唯一ID
+                chatType: 1, //对话类型  1：私聊  2：群聊  3：观聊
+                takeUserId:123, //发起对话的人
+                byTakeUserIds: [1,2 /* userIds */], //接收对话的人
+                content: this.msgContent, //信息内容
+                contentType: 1, //信息内容类型   1：文本  2：视频  3：图片  4：表情  5：文件
+                timestamp: new Date().getTime() //时间戳
             };
-            this.ws.send(JSON.stringify(msgObj));
-
-            // //获取
-            // let msgBody = JSON.parse(localStorage.getItem("msgbody"));
-            // msgBody.push(msgObj)
-            // this.talkData = msgBody;
-
-            // //存储
-            // localStorage.setItem("msgbody",JSON.stringify(this.talkData));
-            // this.clearFrieStatus();
+            this.getWs.send(JSON.stringify(msgObj));
         },
         clearFrieStatus(){
             this.msgContent = "";
