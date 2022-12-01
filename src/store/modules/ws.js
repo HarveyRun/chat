@@ -16,15 +16,20 @@ const ws = {
 	},
 	mutations: {
 		CREATE_CONNECT(state,data){
+			if(!data.userId){
+				alert("未获取到用户信息");
+				return;
+			}
 			if(state.count < 251){
-				let wsUrl = `ws://127.0.0.1:7070?userid=${data.userId}`
+				let wsUrl = `ws://localhost:7070?userid=${data.userId}`
 				state.wsExample = new WebSocket(wsUrl);
 				state.wsExample.onopen = window.wsOpen;
 				state.wsExample.onclose = window.wsClose;
 				state.wsExample.onerror = window.wsError;
 				state.count++;
+				localStorage.setItem("isCreate","false");
 			}else{
-				alert("连接已打上线");
+				alert("连接已达上线");
 			}
 		},
 		PUT_CHAT(state,data){

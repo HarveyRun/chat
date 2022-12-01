@@ -23,6 +23,7 @@ export default {
       ...mapGetters(['getWs','getChatList']),
   },
   mounted(){
+    
   },
   methods:{
     ...mapActions('wsMoules',['setChatList']),
@@ -30,7 +31,7 @@ export default {
         return new Promise(resolve => {
             let msg = JSON.parse(data.data);
             let currUserId = JSON.parse(localStorage.getItem("chat_user_infomation")).userId;
-            if(currUserId == msg.takeUserId ||  msg.byTakeUserIds.indexOf(currUserId) > -1){
+            if(currUserId == msg.takeUserId ||  currUserId == msg.takeUserById){
               //获取
               let msgBody = JSON.parse(localStorage.getItem("msgbody"));
               msgBody.push(msg)
@@ -42,10 +43,12 @@ export default {
         });
      },
      wsMessage(e){
-        console.log("---------- App page message callback ----------");
+        console.log("---------- 接收数据如下： ----------");
         console.dir(e.data);
         this.hanndleBusiess(e).then((res)=>{
+            console.log("---------- 开始更新数据 ----------");
             this.setChatList(res)
+            console.log("---------- 更新数据结束 ----------");
         });
      }
   }

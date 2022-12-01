@@ -3,22 +3,25 @@
         <a-button @click="clearContent" type="primary">
             清除内容
         </a-button>
+        <img :src="realtimeUserMappingInfo.takeUserByAvatar" style="width:25px;height:25px;"/>
 		<div class="warp">
 			<div id="msgList" v-for="item in chatList" :key="item.id">
-				<div class="item" v-if="currUserId == item.takeUserId">
+                <!-- 左侧用户 -->
+				<div class="item" v-if="currUserId != item.takeUserId">
 					<div class="right_user">
-						<div class="main_right_user"><img :src="currUserInfo.userAvg"></div>
+						<div class="main_right_user"><img :src="realtimeUserMappingInfo.takeUserByAvatar"></div>
 						<div class="chat_right">
 							<div>{{ item.content }}</div>
 						</div>
 					</div>
 				</div>
-				<div class="item" v-if="currUserId != item.takeUserId">
+                <!-- 右侧用户 -->
+				<div class="item" v-if="currUserId == item.takeUserId">
 					<div class="left_user">
 						<div class="chat_left">
 							<div>{{ item.content }}</div>
 						</div>
-						<div class="corr_left_user"><img :src="talkUserInfo.userAvg"></div>
+						<div class="corr_left_user"><img :src="realtimeUserMappingInfo.takeUserAvatar"></div>
 					</div>
 				</div>
 			</div>
@@ -39,33 +42,30 @@ export default {
     name:"client",
     data () {
         return {
-            //自己的基本信息
-            currUserInfo:{
-                userId: 2,
-                userAvg:require('@/assets/2.jpg')
-            },
-            //对话人的基本信息
-            talkUserInfo:{
-                userId: 1,
-                userAvg:require('@/assets/1.jpg')
-            },
-            currUserId:0,
+            currUserId: null,
             msgContent:"",
             isDisBtn:true,
             talkData: [],
-            ws:null
+            realtimeUserMappingInfo:null
         }
     },
     created() {
-        localStorage.setItem("msgbody",JSON.stringify([]));
-        this.currUserId = JSON.parse(localStorage.getItem("chat_user_infomation")).userId;
+        let realtimeUserMap = JSON.parse(localStorage.getItem('talk_realtime_user_mapping'));
+        this.realtimeUserMappingInfo = realtimeUserMap;
     },
     computed:{
         ...mapState('wsMoules',['wsExample','chatList']),
-        ...mapGetters(['getWs','getChatList']),
+        ...mapGetters(['getWs','getChatList','getUserInfomation']),
+    },
+    watch:{
+      '$store.state.wsMoules.chatList'(){
+        console.log("最新记录");
+        console.dir(this.$store.state.wsMoules.chatList);
+      }
     },
     mounted(){
-        console.dir(this.getChatList)
+        localStorage.setItem("msgbody",JSON.stringify([]));
+        this.currUserId = this.getUserInfomation.userId;
     },
     methods:{
         clearContent(){
@@ -82,13 +82,15 @@ export default {
             let msgObj = {
                 id: new Date().getTime(),  //唯一ID
                 chatType: 1, //对话类型  1：私聊  2：群聊  3：观聊
-                takeUserId:123, //发起对话的人
-                byTakeUserIds: [1,2 /* userIds */], //接收对话的人
+                takeUserId: 123, //发送人
+                takeUserById: 456, //接收人（单人）
+                byTakeUserIds: [], //接收人（多人）
                 content: this.msgContent, //信息内容
                 contentType: 1, //信息内容类型   1：文本  2：视频  3：图片  4：表情  5：文件
                 timestamp: new Date().getTime() //时间戳
             };
             this.getWs.send(JSON.stringify(msgObj));
+            this.clearFrieStatus();
         },
         clearFrieStatus(){
             this.msgContent = "";
