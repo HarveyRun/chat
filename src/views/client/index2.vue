@@ -1,24 +1,29 @@
 <template>
     <div id="client">
-        <img :src="realtimeUserMappingInfo.takeUserByAvatar" style="width:25px;height:25px;"/>
+        <img :src="realtimeUserMappingInfo.sessionTalkByUsers[0].takeUserByAvatar" style="width:30px;height:30px;" v-show="realtimeUserMappingInfo.chatRoomType == 1"/>
+        <span v-show="(realtimeUserMappingInfo.chatRoomType == 2)">多人聊天室</span>
+
+        {{realtimeUserMappingInfo.sessionTalkUser.takeUserId}}
+
 		<div class="warp">
 			<div id="msgList" v-for="item in chatList" :key="item.id">
                 <!-- 左侧用户 -->
-				<div class="item" v-if="currUserId != item.takeUserId">
+				<div class="item" v-if="(currUserId != item.sendMsgUserId)">
 					<div class="right_user">
-						<div class="main_right_user"><img :src="realtimeUserMappingInfo.takeUserByAvatar"></div>
+						<div class="main_right_user"><img :src="realtimeUserMappingInfo.sessionTalkByUsers[0].takeUserByAvatar" v-show="realtimeUserMappingInfo.chatRoomType == 1"></div>
+						<!-- <div class="main_right_user"><img :src="realtimeUserMappingInfo.sessionTalkByUsers.takeUserByAvatar"></div> -->
 						<div class="chat_right">
 							<div>{{ item.content }}</div>
 						</div>
 					</div>
 				</div>
                 <!-- 右侧用户 -->
-				<div class="item" v-if="currUserId == item.takeUserId">
+				<div class="item" v-else>
 					<div class="left_user">
 						<div class="chat_left">
 							<div>{{ item.content }}</div>
 						</div>
-						<div class="corr_left_user"><img :src="realtimeUserMappingInfo.takeUserAvatar"></div>
+						<div class="corr_left_user"><img :src="currUserAvatarUrl"></div>
 					</div>
 				</div>
 			</div>
@@ -40,6 +45,7 @@ export default {
     data () {
         return {
             currUserId: null,
+            currUserAvatarUrl: "",
             msgContent:"",
             isDisBtn:true,
             talkData: [],
@@ -47,8 +53,10 @@ export default {
         }
     },
     created() {
-        let realtimeUserMap = JSON.parse(localStorage.getItem('talk_realtime_user_mapping'));
-        this.realtimeUserMappingInfo = realtimeUserMap;
+        let realtimeUserMap = JSON.parse(localStorage.getItem('room_cache'));
+        this.realtimeUserMappingInfo = realtimeUserMap.find((item)=>{ return item.chatRoomId == this.$route.query.roomId });
+        console.dir(this.realtimeUserMappingInfo);
+
     },
     computed:{
         ...mapState('wsMoules',['wsExample','chatList']),
@@ -63,6 +71,7 @@ export default {
     mounted(){
         localStorage.setItem("msgbody",JSON.stringify([]));
         this.currUserId = this.getUserInfomation.userId;
+        this.currUserAvatarUrl = this.getUserInfomation.avatarUrl;
         console.log("client2");
     },
     methods:{
@@ -77,9 +86,8 @@ export default {
             let msgObj = {
                 id: new Date().getTime(),  //唯一ID
                 chatType: 1, //对话类型  1：私聊  2：群聊  3：观聊
-                takeUserId: this.realtimeUserMappingInfo.takeUserId, //发送人
-                takeUserById: this.realtimeUserMappingInfo.takeUserById, //接收人（单人）
-                byTakeUserIds: [], //接收人（多人）
+                sendMsgUserId: this.currUserId, //发送人
+                sendToRoomId: this.realtimeUserMappingInfo.chatRoomId, //发送到那个房间
                 content: this.msgContent, //信息内容
                 contentType: 1, //信息内容类型   1：文本  2：视频  3：图片  4：表情  5：文件
                 timestamp: new Date().getTime() //时间戳

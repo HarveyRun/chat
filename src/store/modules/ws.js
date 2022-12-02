@@ -28,7 +28,6 @@ const ws = {
 				state.wsExample.onclose = window.wsClose;
 				state.wsExample.onerror = window.wsError;
 				state.count++;
-				localStorage.setItem("isCreate","false");
 			}else{
 				alert("连接已达上线");
 			}
