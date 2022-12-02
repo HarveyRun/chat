@@ -1,8 +1,5 @@
 <template>
     <div id="client">
-        <a-button @click="clearContent" type="primary">
-            清除内容
-        </a-button>
         <img :src="realtimeUserMappingInfo.takeUserByAvatar" style="width:25px;height:25px;"/>
 		<div class="warp">
 			<div id="msgList" v-for="item in chatList" :key="item.id">
@@ -66,11 +63,9 @@ export default {
     mounted(){
         localStorage.setItem("msgbody",JSON.stringify([]));
         this.currUserId = this.getUserInfomation.userId;
+        console.log("client3");
     },
     methods:{
-        clearContent(){
-            this.talkData.splice(0);
-        },
         toogleStatus(){
             if(!this.msgContent){
                 this.isDisBtn = true;
@@ -82,8 +77,8 @@ export default {
             let msgObj = {
                 id: new Date().getTime(),  //唯一ID
                 chatType: 1, //对话类型  1：私聊  2：群聊  3：观聊
-                takeUserId: 123, //发送人
-                takeUserById: 456, //接收人（单人）
+                takeUserId: this.realtimeUserMappingInfo.takeUserId, //发送人
+                takeUserById: this.realtimeUserMappingInfo.takeUserById, //接收人（单人）
                 byTakeUserIds: [], //接收人（多人）
                 content: this.msgContent, //信息内容
                 contentType: 1, //信息内容类型   1：文本  2：视频  3：图片  4：表情  5：文件

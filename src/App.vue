@@ -30,25 +30,21 @@ export default {
      hanndleBusiess(data){
         return new Promise(resolve => {
             let msg = JSON.parse(data.data);
-            let currUserId = JSON.parse(localStorage.getItem("chat_user_infomation")).userId;
-            if(currUserId == msg.takeUserId ||  currUserId == msg.takeUserById){
-              //获取
-              let msgBody = JSON.parse(localStorage.getItem("msgbody"));
-              msgBody.push(msg)
+            //获取
+            let msgBody = JSON.parse(localStorage.getItem("msgbody"));
+            msgBody.push(msg)
 
-              //存储
-              localStorage.setItem("msgbody",JSON.stringify(msgBody));
-              resolve(msgBody);
-            }
+            //存储
+            localStorage.setItem("msgbody",JSON.stringify(msgBody));
+            resolve(msgBody);
+            // if(currUserId == msg.takeUserId ||  currUserId == msg.takeUserById){}
         });
      },
      wsMessage(e){
         console.log("---------- 接收数据如下： ----------");
         console.dir(e.data);
         this.hanndleBusiess(e).then((res)=>{
-            console.log("---------- 开始更新数据 ----------");
             this.setChatList(res)
-            console.log("---------- 更新数据结束 ----------");
         });
      }
   }

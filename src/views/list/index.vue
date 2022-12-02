@@ -70,15 +70,15 @@ export default {
             localStorage.setItem("talk_realtime_user_mapping",JSON.stringify(genTalkUserAndTalkByUserInfo));
             if(data.userId == 123){
                 this.$router.push({
-                    path: `/c`
+                    path: `/a`
                 });
             }else if(data.userId == 456){
                 this.$router.push({
-                    path: `/s`
+                    path: `/b`
                 });
             }else{
                 this.$router.push({
-                    path: `/b`
+                    path: `/c`
                 });
             }
         },

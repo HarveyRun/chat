@@ -21,7 +21,8 @@ const ws = {
 				return;
 			}
 			if(state.count < 251){
-				let wsUrl = `ws://localhost:7070?userid=${data.userId}`
+				// let wsUrl = `ws://localhost:7070?userid=${data.userId}`
+				let wsUrl = `ws://localhost:8084?userid=${data.userId}`
 				state.wsExample = new WebSocket(wsUrl);
 				state.wsExample.onopen = window.wsOpen;
 				state.wsExample.onclose = window.wsClose;

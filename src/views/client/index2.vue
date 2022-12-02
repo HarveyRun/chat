@@ -55,17 +55,15 @@ export default {
         ...mapGetters(['getWs','getChatList','getUserInfomation']),
     },
     watch:{
-      '$store.state.wsMoules.chatList'(oldList,newList){
+      '$store.state.wsMoules.chatList'(){
         console.log("最新记录");
-        console.dir(oldList);
-        console.dir(newList);
         console.dir(this.$store.state.wsMoules.chatList);
       }
     },
     mounted(){
         localStorage.setItem("msgbody",JSON.stringify([]));
         this.currUserId = this.getUserInfomation.userId;
-        console.log("client");
+        console.log("client2");
     },
     methods:{
         toogleStatus(){
