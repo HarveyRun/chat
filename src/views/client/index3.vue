@@ -1,245 +1,112 @@
 <template>
-    <div id="client">
-        <img :src="realtimeUserMappingInfo.takeUserByAvatar" style="width:25px;height:25px;"/>
-		<div class="warp">
-			<div id="msgList" v-for="item in chatList" :key="item.id">
-                <!-- 左侧用户 -->
-				<div class="item" v-if="currUserId != item.takeUserId">
-					<div class="right_user">
-						<div class="main_right_user"><img :src="realtimeUserMappingInfo.takeUserByAvatar"></div>
-						<div class="chat_right">
-							<div>{{ item.content }}</div>
-						</div>
-					</div>
-				</div>
-                <!-- 右侧用户 -->
-				<div class="item" v-if="currUserId == item.takeUserId">
-					<div class="left_user">
-						<div class="chat_left">
-							<div>{{ item.content }}</div>
-						</div>
-						<div class="corr_left_user"><img :src="realtimeUserMappingInfo.takeUserAvatar"></div>
-					</div>
-				</div>
-			</div>
-			<div class="fireWarp">
-				<div class="hanndleWarp">
-					<input type="text" name="" @input="toogleStatus" class="fireMessage" v-model="msgContent">
-					<button v-show="isDisBtn" class="disFireBtn">发送</button>
-					<button v-show="!isDisBtn" @click="fire">发送</button>
-				</div>
-			</div>
-		</div>
+    <div>
+      <!--填写个人信息  -->
+      <input v-model="userId" />
+      <input v-model="userName" />
+      <!-- 绑定后根据个人信息创建websocket连接 -->
+      <button @click="andUser">绑定</button>
+      <br />
+      <!-- 填写要发送的消息 -->
+      <input v-model="message" />
+      <!-- 发送信息 -->
+      <button @click="webSocketSend">发送</button>
+      <br />
+      <!-- 遍历显示所有信息列表 -->
+      <div v-for="(item,index) in infoList" :key="index">
+        <span>{{ item }}</span>
+        <br />
+      </div>
     </div>
-</template>
-
-<script>
-import { mapGetters,mapState } from "vuex";
-export default {
-    name:"client",
-    data () {
-        return {
-            currUserId: null,
-            msgContent:"",
-            isDisBtn:true,
-            talkData: [],
-            realtimeUserMappingInfo:null
-        }
-    },
-    created() {
-        let realtimeUserMap = JSON.parse(localStorage.getItem('talk_realtime_user_mapping'));
-        this.realtimeUserMappingInfo = realtimeUserMap;
-    },
-    computed:{
-        ...mapState('wsMoules',['wsExample','chatList']),
-        ...mapGetters(['getWs','getChatList','getUserInfomation']),
-    },
-    watch:{
-      '$store.state.wsMoules.chatList'(){
-        console.log("最新记录");
-        console.dir(this.$store.state.wsMoules.chatList);
-      }
-    },
-    mounted(){
-        localStorage.setItem("msgbody",JSON.stringify([]));
-        this.currUserId = this.getUserInfomation.userId;
-        console.log("client3");
-    },
-    methods:{
-        toogleStatus(){
-            if(!this.msgContent){
-                this.isDisBtn = true;
-            }else{
-                this.isDisBtn = false;
+  </template>
+  
+  <script>
+      export default {
+        name: "Index",
+        data(){
+          return{
+            //默认用户信息
+            userId:1,
+            userName:"张三",
+            //预置websocket，设为undefined
+            websock:undefined,
+            //要发送的消息
+            message:"",
+            //消息列表
+            infoList:[],
+          }
+        },
+        mounted() {
+          //如果多地进行测试，可以在这里进行初始化
+          //一个人开多个窗口的话，可以在填写不同用户信息后，点击绑定时使用不同的userId进行初始化
+        },
+        destroyed() {
+          //页面销毁时触发，关闭此用户的websocket连接
+          this.webSocketOnClose();
+        },
+        methods:{
+          //建立连接
+          initWebSocket(){
+            //websocket服务链接的地址
+            let url = "ws://127.0.0.1:8080/websocket/" + this.userId;
+            //创建连接
+            this.websock = new WebSocket(url);
+            //将自定义的方法替换websocket自带的方法
+            this.websock.onopen = this.webSocketOnOpen;
+            // this.websock.send = this.webSocketSend;
+            this.websock.onerror = this.webSocketOnError;
+            this.websock.onmessage = this.webSocketOnMessage;
+            this.websock.onclose = this.webSocketOnClose;
+          },
+          //连接上之后触发
+          webSocketOnOpen(){
+            //将用户连接成功的消息放到列表进行展示
+            this.infoList.push("【" + this.userName + "】连接成功");
+          },
+          //发送消息时触发
+          webSocketSend(){
+            //将用户信息和要发送的消息包装为json
+            let data = {
+              userId:this.userId,
+              userName:this.userName,
+              message:this.message
             }
-        },
-        fire(){
-            let msgObj = {
-                id: new Date().getTime(),  //唯一ID
-                chatType: 1, //对话类型  1：私聊  2：群聊  3：观聊
-                takeUserId: this.realtimeUserMappingInfo.takeUserId, //发送人
-                takeUserById: this.realtimeUserMappingInfo.takeUserById, //接收人（单人）
-                byTakeUserIds: [], //接收人（多人）
-                content: this.msgContent, //信息内容
-                contentType: 1, //信息内容类型   1：文本  2：视频  3：图片  4：表情  5：文件
-                timestamp: new Date().getTime() //时间戳
-            };
-            this.getWs.send(JSON.stringify(msgObj));
-            this.clearFrieStatus();
-        },
-        clearFrieStatus(){
-            this.msgContent = "";
-            this.isDisBtn = true;
-        },
-    }
-}
-</script>
-
-<style scoped>
-ul li{
-  list-style-type:none;
-  height:24px;
-  line-height: 24px;
-}
-    .warp{
-        position: relative;
-        border:2px solid #d9d9d9;
-        border-radius:5px;
-        width:420px;
-        height:800px;
-        font-size:12px;
-        margin:0px auto;
-        margin-top:50px;
-        overflow-y: scroll;
-        padding:10px;
-    }
-    .item{
-        margin-top:20px;
-    }
-    .chat_right,
-    .chat_left{
-        background-color: #ff7a45;
-        border-bottom-color: #ff7a45;
-        /*为了给after伪元素自动继承*/
-        color: #fff;
-        font-size: 12px;
-        line-height: 18px;
-        padding: 10px 12px 10px 12px;
-        box-sizing: border-box;
-        border-radius: 6px;
-        position: relative;
-        word-break: break-all;
-    }
-
-    /** 通过对小正方形旋转45度解决 **/
-    .chat_right::before {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: -5px;
-        width: 10px;
-        height: 10px;
-        margin-top: -5px;
-        background: inherit;
-        transform: rotate(45deg);
-    }
-
-    /** 通过对小正方形旋转45度解决 **/
-    .chat_left::before {
-        content: '';
-        position: absolute;
-        top: 50%;
-        right: -5px;
-        width: 10px;
-        height: 10px;
-        margin-top: -5px;
-        background: inherit;
-        transform: rotate(45deg);
-    }
-
-    .right_user{
-        display: flex;
-        justify-content: flex-start;
-        align-items: center;
-
-    }
-    .main_right_user{
-        width:34px;
-        height:34px;
-        border-radius: 50%;
-        background: black;
-        overflow: hidden;
-        flex-shrink:0;
-
-    }
-    .main_right_user img{
-        width:100%;
-        height:100%;
-    }
-    .chat_right{
-        margin-left: 15px;
-        margin-right: 46px;
-        text-align: left;
-    }
-
-    .left_user{
-        display: flex;
-        justify-content: flex-end;
-        align-items: center;
-    }
-    .corr_left_user{
-        width:34px;
-        height:34px;
-        border-radius: 50%;
-        background: black;
-        overflow: hidden;
-        flex-shrink:0;
-    }
-    .corr_left_user img{
-        width:100%;
-        height:100%;
-    }
-    .chat_left{
-        text-align: right;
-        margin-right: 15px;
-        margin-left: 46px;
-    }
-    .fireWarp{
-        width:100%;
-        position: absolute;
-        width: 100%;
-        left: 0px;
-        bottom: 0px;
-    }
-    .hanndleWarp{
-        width:100%;
-        display: flex;
-        justify-content: flex-start;
-        align-items: center;
-    }
-    .hanndleWarp input{
-        width:100%;
-        font-size:14px;
-        border:none;
-        border-top:2px solid #d9d9d9;
-        padding:10px;
-        color:#262626;
-    }
-    .hanndleWarp button{
-        width:95px;
-        border:none;
-        border-bottom-right-radius: 4px;
-        background-color: #ffa940;
-        border-top:2px solid #ffa940;
-        padding:10px;
-        color:#fff;
-        font-size:13px;
-        flex-shrink:0;
-        cursor: pointer;
-    }
-    .hanndleWarp button.disFireBtn{
-        background-color: #bfbfbf;
-        border-top:2px solid #bfbfbf;
-        cursor: default;
-    }
-</style>
+            //将json格式化为字符串之后发送到服务端
+            this.websock.send(JSON.stringify(data));
+            //自己发送的信息添加到列表进行展示
+            this.infoList.push(this.userName + ":" + this.message);
+          },
+          //发送错误时触发
+          webSocketOnError(e){
+            //将错误信息添加到列表展示在页面
+            this.infoList.push("【错误】:" + e.toString());
+          },
+          //接收消息时触发
+          webSocketOnMessage(e){
+            //返回的信息存储在此方法参数的data字段
+            if(e.data != undefined && e.data != null && e.data != ''){
+              //信息非空时，通过json格式化为表单
+              let json = JSON.parse(e.data);
+              //如果返回消息的用户id是本人，则为自己发送的信息，不需要显示
+              if(json.userId != this.userId){
+                //判断是别人发送的信息，则拼接字段并添加到列表中用于展示
+                this.infoList.push(json.userName + ":" + json.message);
+              }
+            }
+          },
+          //关闭连接时触发
+          webSocketOnClose(){
+            //将用户关闭链接的消息写入列表
+            this.infoList.push("【" + this.userName + "】关闭连接");
+          },
+          //绑定用户
+          andUser(){
+            //初始化websocket
+            this.initWebSocket();
+          }
+        }
+      }
+  </script>
+  
+  <style scoped>
+  
+  </style>

@@ -11,8 +11,7 @@ window.wsError = (data) => {
 const ws = {
 	state: {
 		wsExample: null,
-		chatList: [],
-		count:0
+		chatList: []
 	},
 	mutations: {
 		CREATE_CONNECT(state,data){
@@ -20,17 +19,11 @@ const ws = {
 				alert("未获取到用户信息");
 				return;
 			}
-			if(state.count < 251){
-				// let wsUrl = `ws://localhost:7070?userid=${data.userId}`
-				let wsUrl = `ws://localhost:8084?userid=${data.userId}`
-				state.wsExample = new WebSocket(wsUrl);
-				state.wsExample.onopen = window.wsOpen;
-				state.wsExample.onclose = window.wsClose;
-				state.wsExample.onerror = window.wsError;
-				state.count++;
-			}else{
-				alert("连接已达上线");
-			}
+			let wsUrl = `ws://127.0.0.1:8085/websocket/userId=${data.userId}`
+			state.wsExample = new WebSocket(wsUrl);
+			state.wsExample.onopen = window.wsOpen;
+			state.wsExample.onclose = window.wsClose;
+			state.wsExample.onerror = window.wsError;
 		},
 		PUT_CHAT(state,data){
 			state.chatList = data;

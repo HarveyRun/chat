@@ -4,7 +4,11 @@ import router from './router'
 import store from './store'
 import Antd from 'ant-design-vue';
 import EventBus from './lib/eventBus'
+import  "./utils/native";
 import 'ant-design-vue/dist/antd.css'
+import "@/styles/business-style.css";
+import "@/styles/business-style-Impl.css";
+
 
 Vue.config.productionTip = false;
 

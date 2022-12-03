@@ -1,31 +1,93 @@
 <template>
-    <div id="list">
+    <div id="list" class="mt30">
         <a-list
             class="loadmore-list"
             item-layout="horizontal"
-            :data-source="data"
+            :data-source="friendsList"
         >
             <a-list-item slot="renderItem" slot-scope="item" class="itemFor" @click="chatRoom(item)">
-                <a-list-item-meta :description="item.desc" >
-                    <h4 slot="title" href="#">{{ item.name }}</h4>
+                <a-list-item-meta description="你好" >
+                    <h4 slot="title" href="#">{{ item.userName }}</h4>
                     <a-avatar
                         slot="avatar"
-                        :src="item.avatarUrl"
+                        :src="item.email"
                     />
                 </a-list-item-meta>
-                <div>{{ item.time }}</div>
+                <div>{{ item.createTime | dateFilter }}</div>
             </a-list-item>
         </a-list>
+        <div class="mt30">
+            <a-button type="primary" @click="addFirends">
+            添加好友
+            </a-button>
+            <a-badge :count="friendRequestNum" :overflow-count="99">
+                <a-button type="primary" @click="seeFirends">
+                    好友请求
+                </a-button>
+            </a-badge>
+        </div>
+        <a-modal v-model="visible" title="添加好友" @ok="handleOk" @cancel="handleCancel" ok-text="添加好友" cancel-text="取消">
+            <a-input-search placeholder="手机号" :loading="searchLoading" enter-button v-model="userPhone" @search="searchFirend"/>
+            <a-textarea placeholder="说明" :rows="12" class="mt20" v-model="userAddRemark"/>
+            <div class="findUserInfo" v-show="findUserInfo.userName">
+                <div class="firendAvatar">
+                    <a-avatar :size="45" :src="findUserInfo.avatar"/>
+                </div>
+                <div>
+                    <h3>{{findUserInfo.userName}}</h3>
+                </div>
+            </div>
+        </a-modal>
+
+        <a-modal v-model="friendVisible" title="好友请求" class="requestFirs" @ok="friendHandleOk" @cancel="friendHandleCancel" >
+            <a-list
+                class="loadmore-list"
+                item-layout="horizontal"
+                :data-source="friendRequestData"
+            >
+                <a-list-item slot="renderItem" slot-scope="item" class="itemFor">
+                    <a slot="actions" @click="passFriend(item,1)">通过</a>
+                    <a slot="actions" @click="passFriend(item,2)">拒绝</a>
+                    <a-list-item-meta description="您好,方便加好友吗" >
+                        <h4 slot="title" href="#">{{ item.userName }}</h4>
+                        <a-avatar
+                            slot="avatar"
+                            :src="item.email"
+                        />
+                    </a-list-item-meta>
+                    <div>{{ item.createTime | dateFilter}}</div>
+                </a-list-item>
+            </a-list>
+            <template slot="footer">
+                <a-button @click="friendHandleCancel">关闭</a-button>
+            </template>
+
+        </a-modal>
     </div>
 </template>
 
 <script>
-import { mapGetters } from 'vuex'
+import { mapActions, mapGetters } from "vuex";
+import { addFriends,findFriends,getFriendsReq,getMustUserReq,addFriendsResultReq,checkIsFriendReq,getFriendsListReq } from "@/api/business";
 export default {
     name:"List",
     data () {
         return {
             sName: "",
+            friendsList:[],
+            friendRequestNum:0,
+            visible: false,
+            friendVisible: false,
+            userPhone:"",
+            userAddRemark:"",
+            searchLoading:false,
+            requestPeople:[],
+            friendIds:[],
+            findUserInfo:{
+                avatar:"",
+                userName:"",
+            },
+            friendRequestData:[],
             data: [{
                 id: 1,
                 name: "Harvey",
@@ -36,40 +98,171 @@ export default {
                 roomId: 999, //房间ID
                 isClickFriendInRoom: true, //是否是点击好友进入聊天房间  true:是  false:创建群聊进入的
                 groupChatId: null //群聊ID
-            },{
-                id: 2,
-                name: "禁止低头",
-                desc: "这个梨很好",
-                time: "08:11",
-                userId: 456,
-                avatarUrl: "https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/3defac71e3a14bee9127f9410fa62d72~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp?",
-                sessionId: 998,
-                isClickFriendInRoom: true,
-                groupChatId: null
-            },{
-                id: 3,
-                name: "小灰灰135",
-                desc: "下午五点吧",
-                time: "16:08",
-                userId: 789,
-                avatarUrl: "https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/4c8fc65df3914091aa1a9f87fc1b7db9~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp?",
-                sessionId: 997,
-                sessionType: 1,
-                isClickFriendInRoom: true,
-                groupChatId: null
             }],
         }
     },
     created() {
         
     },
+    filters: {
+        dateFilter: (data) => {
+            return new Date(data).Format("yyyy-MM-dd hh:mm:ss");
+        }
+    },
     computed:{
         ...mapGetters(['getUserInfomation']),
     },
     mounted(){
         //Math.random().toString().slice(2,10), //会话ID
+        this.initData();
     },
     methods:{
+        ...mapActions('userMoules',['setUserStatus']),
+        initData(){
+            this.getFriends(); //获取好友
+            this.getFriendsReqFn(); //获取好友请求
+        },
+        getFriends(){
+            getFriendsListReq({createUserId : this.getUserInfomation.userId}).then((res)=>{
+                for(let i=0;i<res.data.length;i++){
+                    this.friendIds.push(res.data[i].relationId);
+                }
+                getMustUserReq(this.friendIds).then((res)=>{
+                    this.friendsList = res.data;
+                });
+            });
+        },
+        getFriendsReqFn(){
+            getFriendsReq({byRequestUserId: this.getUserInfomation.userId}).then((res)=>{
+                this.friendRequestNum = res.data.length;
+            });
+        },
+        getFriendsReqRealtimeFn(){
+            getFriendsReq({byRequestUserId: this.getUserInfomation.userId}).then((res)=>{
+                this.friendRequestNum = res.data.length;
+                let json = res.data;
+                for(let i=0;i<json.length;i++){
+                    this.requestPeople.push(json[i].requestUserId);
+                }
+                this.getRequestPeopleList();
+            });
+        },
+        getRequestPeopleList(){
+            getMustUserReq(this.requestPeople).then((res)=>{
+                this.friendRequestData = res.data;
+                this.friendVisible = true;
+            });
+        },
+        searchFirend(){
+            if(!this.userPhone){
+                this.$message.warning('请输入手机号');
+                return;
+            }
+            this.searchLoading = true;
+            findFriends([this.userPhone]).then((res)=>{
+                if(res.success){
+                    if(res.data.length>0){
+                        let json = res.data[0];
+                        this.findUserInfo.avatar = json.email;
+                        this.findUserInfo.userName = json.userName;
+                        this.findUserId = json.id;
+                    }else{
+                        this.findUserInfo.avatar = "";
+                        this.findUserInfo.userName = "";
+                        this.findUserId = "";
+                        this.$message.warning('用户不存在');
+                    }
+                }
+                this.searchLoading = false;
+            });
+        },
+        passFriend(data,type){
+            let proObj = {
+                params:{
+                    handleType: 1,
+                    byRequestUserId: 1,
+                    requestUserId: 1,
+                },
+                data:{
+                    relationId: 1,
+                    createUserId: 1
+                }
+            }
+            if(type == 1){
+                proObj.params.handleType = 1;
+                proObj.params.byRequestUserId = this.getUserInfomation.userId;
+                proObj.params.requestUserId = data.id;
+                proObj.data.relationId = this.getUserInfomation.userId;
+                proObj.data.createUserId = data.id;
+            }else{
+                proObj.params.handleType = 2;
+                proObj.params.byRequestUserId = this.getUserInfomation.userId;
+                proObj.params.requestUserId = data.id;
+            }
+            addFriendsResultReq(proObj).then((res)=>{
+                if(res.success){
+                    this.$message.success('操作成功');
+                    this.getFriendsReqFn();
+                    this.friendVisible = false;
+                }
+            });
+        },
+        addFirends(){
+            this.visible = true;
+        },
+        seeFirends(){
+            if(this.friendRequestNum < 1){
+                this.$message.warning('无好友请求');
+                return;
+            }
+            this.getFriendsReqRealtimeFn();
+        },
+        handleOk(e){
+            if(!this.findUserId){
+                this.$message.warning('请先查找好友');
+                return;
+            }
+            if(this.getUserInfomation.userId == this.findUserId){
+                this.$message.warning('不能添加自己为好友');
+                return;
+            }
+
+            checkIsFriendReq({relationId: this.findUserId, createUserId: this.getUserInfomation.userId }).then((res)=>{
+                if(res.data.length > 0){
+                    this.$message.warning('对方已是您的好友');
+                    return;
+                }else{
+                    this.addFriendsFn();
+                }
+            });
+            
+            
+        },
+        addFriendsFn(){
+            addFriends({
+                "requestUserId": this.getUserInfomation.userId, //请求好友的用户ID
+                "byRequestUserId": this.findUserId //请求加好友的ID
+            }).then((res)=>{
+                this.$message.success('好友请求已发送');
+                this.clearFindUser();
+                this.visible = false;
+            });
+        },
+        friendHandleOk(e){
+        },
+        handleCancel(){
+            this.clearFindUser();
+        },
+        friendHandleCancel(){
+            this.friendVisible = false;
+        },
+        clearFindUser(){
+            this.userPhone="";
+            this.userAddRemark="";
+            this.findUserInfo.avatar = "";
+            this.findUserInfo.userName = "";
+            this.findUserId = "";
+        },
         chatRoom(data){
 
             //点击好友或发起群聊都会创建一个房间
@@ -111,7 +304,7 @@ export default {
                 roomCacheCars.push(room);
                 localStorage.setItem("room_cache",JSON.stringify(roomCacheCars));
             }
-
+            
             if(data.userId == 123){
                 this.$router.push({
                     path: `/b`,
@@ -128,7 +321,7 @@ export default {
                 });
             }else{
                 this.$router.push({
-                    path: `/b`,
+                    path: `/c`,
                     query:{
                         roomId: room.chatRoomId
                     }
@@ -138,7 +331,11 @@ export default {
     }
 }
 </script>
-
+<style>
+.requestFirs .ant-modal-body{
+    padding:0px;
+}
+</style>
 <style scoped>
 .loadmore-list {
   padding:20px;
@@ -146,5 +343,14 @@ export default {
 }
 .itemFor{
     cursor: pointer;
+}
+.findUserInfo{
+    display: flex;
+    justify-content: left;
+    align-items: center;
+    margin-top: 15px;
+}
+.firendAvatar{
+    margin-right: 10px;
 }
 </style>

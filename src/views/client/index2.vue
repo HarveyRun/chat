@@ -31,7 +31,7 @@
 				<div class="hanndleWarp">
 					<input type="text" name="" @input="toogleStatus" class="fireMessage" v-model="msgContent">
 					<button v-show="isDisBtn" class="disFireBtn">发送</button>
-					<button v-show="!isDisBtn" @click="fire">发送</button>
+					<button v-show="!isDisBtn" @keyup.enter="fire">发送</button>
 				</div>
 			</div>
 		</div>
@@ -85,11 +85,11 @@ export default {
         fire(){
             let msgObj = {
                 id: new Date().getTime(),  //唯一ID
-                chatType: 1, //对话类型  1：私聊  2：群聊  3：观聊
                 sendMsgUserId: this.currUserId, //发送人
                 sendToRoomId: this.realtimeUserMappingInfo.chatRoomId, //发送到那个房间
-                content: this.msgContent, //信息内容
-                contentType: 1, //信息内容类型   1：文本  2：视频  3：图片  4：表情  5：文件
+                sendToRoomType: this.realtimeUserMappingInfo.chatRoomId, //房间类型  1：私聊房间  2：群聊房间  3：仅观聊
+                message: this.msgContent, //信息内容
+                messageType: 1, //信息内容类型   1：文本  2：视频  3：图片  4：表情  5：文件
                 timestamp: new Date().getTime() //时间戳
             };
             this.getWs.send(JSON.stringify(msgObj));
