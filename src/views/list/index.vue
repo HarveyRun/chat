@@ -5,14 +5,30 @@
             item-layout="horizontal"
             :data-source="friendsList"
         >
-            <a-list-item slot="renderItem" slot-scope="item" class="itemFor" @click="chatRoom(item)">
-                <a-list-item-meta description="你好" >
+            <a-list-item slot="renderItem" slot-scope="item" class="itemFor" >
+                <a slot="actions" @click="deleFriend(item)">
+                    <a-dropdown :trigger="['click']">
+                        <a class="ant-dropdown-link" @click="e => e.stopPropagation()">
+                            更多操作<a-icon type="down" />
+                        </a>
+                        <a-menu slot="overlay">
+                            <a-menu-item key="2" @click="hotFriend(item)">
+                                标记未读
+                            </a-menu-item>
+                            <a-menu-item key="1" @click="hotUnFriend(item)">
+                                标记已读
+                            </a-menu-item>
+                            <a-menu-item key="3" @click="deleFriend(item)">
+                                删除好友
+                            </a-menu-item>
+                        </a-menu>
+                    </a-dropdown>
+                </a>
+                <a-list-item-meta description="你好" @click="startChat(item)">
                     <h4 slot="title" href="#">{{ item.userName }}</h4>
-                    <a-avatar
-                        slot="avatar"
-                        :src="item.email"
-                    />
+                    <a-badge :dot="(currIds.indexOf(item.id) != -1)" slot="avatar"><a-avatar shape="square" :src="item.email"/></a-badge>
                 </a-list-item-meta>
+
                 <div>{{ item.createTime | dateFilter }}</div>
             </a-list-item>
         </a-list>
@@ -27,7 +43,7 @@
             </a-badge>
         </div>
         <a-modal v-model="visible" title="添加好友" @ok="handleOk" @cancel="handleCancel" ok-text="添加好友" cancel-text="取消">
-            <a-input-search placeholder="手机号" :loading="searchLoading" enter-button v-model="userPhone" @search="searchFirend"/>
+            <a-input-search placeholder="手机号" :loading="searchLoading" enter-button v-model="userPhone" @search="searchFirend" @change="addPhoneChange"/>
             <a-textarea placeholder="说明" :rows="12" class="mt20" v-model="userAddRemark"/>
             <div class="findUserInfo" v-show="findUserInfo.userName">
                 <div class="firendAvatar">
@@ -68,11 +84,21 @@
 
 <script>
 import { mapActions, mapGetters } from "vuex";
-import { addFriends,findFriends,getFriendsReq,getMustUserReq,addFriendsResultReq,checkIsFriendReq,getFriendsListReq } from "@/api/business";
+import { 
+    addFriends,
+    findFriends,
+    getFriendsReq,
+    getMustUserReq,
+    addFriendsResultReq,
+    checkIsFriendReq,
+    getFriendsListReq,
+    clearFriendLinkReq 
+} from "@/api/business";
 export default {
     name:"List",
     data () {
         return {
+            currIds:[],
             sName: "",
             friendsList:[],
             friendRequestNum:0,
@@ -102,7 +128,8 @@ export default {
         }
     },
     created() {
-        
+        let uinfo = this.getUserInfomation ? this.getUserInfomation : JSON.parse(localStorage.getItem("chat_user_infomation"))
+        this.setUserInfo(uinfo);
     },
     filters: {
         dateFilter: (data) => {
@@ -117,41 +144,57 @@ export default {
         this.initData();
     },
     methods:{
-        ...mapActions('userMoules',['setUserStatus']),
+        ...mapActions('userMoules',['setUserStatus','setUserInfo']),
         initData(){
             this.getFriends(); //获取好友
             this.getFriendsReqFn(); //获取好友请求
         },
         getFriends(){
-            getFriendsListReq({createUserId : this.getUserInfomation.userId}).then((res)=>{
+            getFriendsListReq({relationId : this.getUserInfomation.userId}).then((res)=>{
+                this.friendIds.splice(0);
                 for(let i=0;i<res.data.length;i++){
-                    this.friendIds.push(res.data[i].relationId);
+                    this.friendIds.push(res.data[i].createUserId);
                 }
-                getMustUserReq(this.friendIds).then((res)=>{
-                    this.friendsList = res.data;
-                });
+                if(this.friendIds.length>0){
+                    getMustUserReq(this.friendIds).then((res)=>{
+                        this.friendsList = res.data;
+                    });
+                }else{
+                    this.friendsList.splice(0);
+                }
             });
         },
         getFriendsReqFn(){
             getFriendsReq({byRequestUserId: this.getUserInfomation.userId}).then((res)=>{
-                this.friendRequestNum = res.data.length;
+                this.conutNum(res.data);
             });
         },
+        conutNum(data){
+            let noRepeat = [];
+            for(let i=0;i<data.length;i++){
+                noRepeat.push(data[i].requestUserId);
+            };
+            this.friendRequestNum = [...new Set(noRepeat)].length;
+        },
         getFriendsReqRealtimeFn(){
+            this.requestPeople.splice(0);
             getFriendsReq({byRequestUserId: this.getUserInfomation.userId}).then((res)=>{
-                this.friendRequestNum = res.data.length;
+                this.conutNum(res.data);
                 let json = res.data;
                 for(let i=0;i<json.length;i++){
                     this.requestPeople.push(json[i].requestUserId);
                 }
-                this.getRequestPeopleList();
+                this.getRequestPeopleList([...new Set(this.requestPeople)]);
             });
         },
-        getRequestPeopleList(){
-            getMustUserReq(this.requestPeople).then((res)=>{
+        getRequestPeopleList(ids){
+            getMustUserReq(ids).then((res)=>{
                 this.friendRequestData = res.data;
                 this.friendVisible = true;
             });
+        },
+        addPhoneChange(){
+            this.findUserId = "";
         },
         searchFirend(){
             if(!this.userPhone){
@@ -174,6 +217,28 @@ export default {
                     }
                 }
                 this.searchLoading = false;
+            });
+        },
+        hotUnFriend(data){
+            this.currIds.map((val,i)=>{
+                if(val == data.id){
+                    this.currIds.splice(i,1);
+                }
+            });
+        },
+        hotFriend(data){
+            this.currIds.push(data.id)
+        },
+        deleFriend(data){
+            let params = {
+                relationId: this.getUserInfomation.userId,
+                createUserId: data.id
+            }
+            clearFriendLinkReq(params).then((res)=>{
+                if(res.success){
+                    this.$message.success('操作成功');
+                    this.getFriends(); //获取好友
+                }
             });
         },
         passFriend(data,type){
@@ -203,6 +268,7 @@ export default {
                 if(res.success){
                     this.$message.success('操作成功');
                     this.getFriendsReqFn();
+                    this.getFriends();
                     this.friendVisible = false;
                 }
             });
@@ -227,7 +293,7 @@ export default {
                 return;
             }
 
-            checkIsFriendReq({relationId: this.findUserId, createUserId: this.getUserInfomation.userId }).then((res)=>{
+            checkIsFriendReq({relationId: this.getUserInfomation.userId, createUserId: this.findUserId }).then((res)=>{
                 if(res.data.length > 0){
                     this.$message.warning('对方已是您的好友');
                     return;
@@ -262,6 +328,12 @@ export default {
             this.findUserInfo.avatar = "";
             this.findUserInfo.userName = "";
             this.findUserId = "";
+        },
+        startChat(data){
+            this.$EventBus.$emit('emitAppConnect', this.getUserInfomation.userId)
+            this.$router.push({
+                path: `/b`
+            });
         },
         chatRoom(data){
 
@@ -305,28 +377,12 @@ export default {
                 localStorage.setItem("room_cache",JSON.stringify(roomCacheCars));
             }
             
-            if(data.userId == 123){
-                this.$router.push({
-                    path: `/b`,
-                    query:{
-                        roomId: room.chatRoomId
-                    }
-                });
-            }else if(data.userId == 456){
-                this.$router.push({
-                    path: `/b`,
-                    query:{
-                        roomId: room.chatRoomId
-                    }
-                });
-            }else{
-                this.$router.push({
-                    path: `/c`,
-                    query:{
-                        roomId: room.chatRoomId
-                    }
-                });
-            }
+            this.$router.push({
+                path: `/b`,
+                query:{
+                    roomId: room.chatRoomId
+                }
+            });
         },
     }
 }

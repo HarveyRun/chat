@@ -1,5 +1,5 @@
 <template>
-    <div id="dashbord">
+    <div id="login">
         <a-form :form="form" :label-col="{ span: 5 }" :wrapper-col="{ span: 12 }" @submit="handleSubmit">
             <a-form-item label="手机号">
                 <a-select
@@ -120,15 +120,7 @@ export default {
 </script>
 
 <style scoped>
-.user{
-    width:100px;
-    display: flex;
-    flex-direction:column;
-    justify-content: center;
-    align-items: center; 
-    margin:0px auto;
-}
-#dashbord{
+#login{
     margin-top:40px;
 }
 </style>

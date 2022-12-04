@@ -1,37 +1,40 @@
 <template>
     <div id="client">
-        <img :src="realtimeUserMappingInfo.sessionTalkByUsers[0].takeUserByAvatar" style="width:30px;height:30px;" v-show="realtimeUserMappingInfo.chatRoomType == 1"/>
+        <!-- <img :src="realtimeUserMappingInfo.sessionTalkByUsers[0].takeUserByAvatar" style="width:30px;height:30px;" v-show="realtimeUserMappingInfo.chatRoomType == 1"/>
         <span v-show="(realtimeUserMappingInfo.chatRoomType == 2)">多人聊天室</span>
 
-        {{realtimeUserMappingInfo.sessionTalkUser.takeUserId}}
+        {{realtimeUserMappingInfo.sessionTalkUser.takeUserId}} -->
 
 		<div class="warp">
-			<div id="msgList" v-for="item in chatList" :key="item.id">
-                <!-- 左侧用户 -->
-				<div class="item" v-if="(currUserId != item.sendMsgUserId)">
-					<div class="right_user">
-						<div class="main_right_user"><img :src="realtimeUserMappingInfo.sessionTalkByUsers[0].takeUserByAvatar" v-show="realtimeUserMappingInfo.chatRoomType == 1"></div>
-						<!-- <div class="main_right_user"><img :src="realtimeUserMappingInfo.sessionTalkByUsers.takeUserByAvatar"></div> -->
-						<div class="chat_right">
-							<div>{{ item.content }}</div>
-						</div>
-					</div>
-				</div>
-                <!-- 右侧用户 -->
-				<div class="item" v-else>
-					<div class="left_user">
-						<div class="chat_left">
-							<div>{{ item.content }}</div>
-						</div>
-						<div class="corr_left_user"><img :src="currUserAvatarUrl"></div>
-					</div>
-				</div>
-			</div>
+            <div class="msgwarp" id="msgwarp">
+                <div id="msgList" v-for="item in chatList" :key="item.id">
+                    <!-- 左侧用户 -->
+                    <div class="item" v-if="currUserId != item.sendMsgUserId">
+                        <div class="right_user">
+                            <div class="main_right_user"><img :src="currUserAvatarUrl"></div>
+                            <!-- <div class="main_right_user"><img :src="realtimeUserMappingInfo.sessionTalkByUsers[0].takeUserByAvatar" v-show="realtimeUserMappingInfo.chatRoomType == 1"></div> -->
+                            <!-- <div class="main_right_user"><img :src="realtimeUserMappingInfo.sessionTalkByUsers.takeUserByAvatar"></div> -->
+                            <div class="chat_right">
+                                <div>{{ item.message }}123</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 右侧用户 -->
+                    <div class="item" v-else>
+                        <div class="left_user">
+                            <div class="chat_left">
+                                <div>{{ item.message }}345</div>
+                            </div>
+                            <div class="corr_left_user"><img :src="currUserAvatarUrl"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 			<div class="fireWarp">
 				<div class="hanndleWarp">
 					<input type="text" name="" @input="toogleStatus" class="fireMessage" v-model="msgContent">
 					<button v-show="isDisBtn" class="disFireBtn">发送</button>
-					<button v-show="!isDisBtn" @keyup.enter="fire">发送</button>
+					<button v-show="!isDisBtn" @click="sendMsg">发送</button>
 				</div>
 			</div>
 		</div>
@@ -53,9 +56,9 @@ export default {
         }
     },
     created() {
-        let realtimeUserMap = JSON.parse(localStorage.getItem('room_cache'));
-        this.realtimeUserMappingInfo = realtimeUserMap.find((item)=>{ return item.chatRoomId == this.$route.query.roomId });
-        console.dir(this.realtimeUserMappingInfo);
+        // let realtimeUserMap = JSON.parse(localStorage.getItem('room_cache'));
+        // this.realtimeUserMappingInfo = realtimeUserMap.find((item)=>{ return item.chatRoomId == this.$route.query.roomId });
+        // console.dir(this.realtimeUserMappingInfo);
 
     },
     computed:{
@@ -66,13 +69,15 @@ export default {
       '$store.state.wsMoules.chatList'(){
         console.log("最新记录");
         console.dir(this.$store.state.wsMoules.chatList);
+        var scrollTop = document.getElementById("msgwarp").scrollTop || document.getElementById("msgwarp").pageYOffset || document.getElementById("msgwarp").scrollTop;
+        this.$nextTick(()=>{
+            document.getElementById("msgwarp").scrollTop = 999999;
+        });
       }
     },
     mounted(){
-        localStorage.setItem("msgbody",JSON.stringify([]));
         this.currUserId = this.getUserInfomation.userId;
         this.currUserAvatarUrl = this.getUserInfomation.avatarUrl;
-        console.log("client2");
     },
     methods:{
         toogleStatus(){
@@ -81,6 +86,14 @@ export default {
             }else{
                 this.isDisBtn = false;
             }
+        },
+        sendMsg(){
+            let msgObj = {
+                sendMsgUserId: this.getUserInfomation.userId, //发送人
+                message: this.msgContent, //信息内容
+            }
+            this.getWs.send(JSON.stringify(msgObj));
+            this.clearFrieStatus();
         },
         fire(){
             let msgObj = {
@@ -99,27 +112,34 @@ export default {
             this.msgContent = "";
             this.isDisBtn = true;
         },
+    },
+    beforeDestroy(){
+        this.getWs.close();
     }
 }
 </script>
 
 <style scoped>
-ul li{
-  list-style-type:none;
-  height:24px;
-  line-height: 24px;
-}
+    #client ul li{
+        list-style-type:none;
+        height:24px;
+        line-height: 24px;
+    }
     .warp{
         position: relative;
         border:2px solid #d9d9d9;
         border-radius:5px;
         width:420px;
-        height:800px;
         font-size:12px;
         margin:0px auto;
         margin-top:50px;
         overflow-y: scroll;
         padding:10px;
+    }
+    .msgwarp{
+        overflow-y: scroll;
+        height: 800px;
+        padding-bottom: 55px;
     }
     .item{
         margin-top:20px;

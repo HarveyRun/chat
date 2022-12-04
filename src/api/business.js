@@ -81,3 +81,12 @@ export function getFriendsListReq(data) {
 		data
 	});
 }
+
+//移除好友关系
+export function clearFriendLinkReq(data) {
+	return request({
+		url: "/relation/clearFriendLink",
+		method: "post",
+		data
+	});
+}

@@ -15,6 +15,20 @@ Vue.config.productionTip = false;
 Vue.use(Antd);
 Vue.prototype.$EventBus = EventBus
 
+
+router.beforeEach(async (to, from, next) => {
+	const hasToken = localStorage.getItem("token");
+	if(hasToken){
+		next();
+	}else{
+		if (to.path === "/login") {
+			next();
+		}else{
+			next(`/login?redirect=${to.path}`);
+		}
+	}
+});
+
 new Vue({
 	el: "#app",
 	router,

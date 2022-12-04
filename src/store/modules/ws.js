@@ -2,7 +2,7 @@ window.wsOpen = (data) => {
 	console.log("成功创建会话")
 }
 window.wsClose = (data) => {
-	console.log("服务器关闭");
+	console.log("断开连接");
 }
 window.wsError = (data) => {
 	console.log("连接出错");

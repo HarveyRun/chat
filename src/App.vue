@@ -1,9 +1,13 @@
 <template>
   <div id="app">
     <div class="globalHanndle">
-        <a-button :type="loginType" @click="toggleLogin" v-show="$route.path != '/'">
+        <a-button :type="loginType" @click="toggleLogin" v-show="$route.path != '/login'">
             {{ loginStatus ? '登 出' : '登 录'}}
         </a-button>
+        <div class="user" v-show="$route.path != '/login'">
+            <a-avatar :size="45" :src="currLoginAvatar" />
+            <h3 class="mt10">{{ currLoginName }}</h3>
+        </div>
     </div>
     <router-view/>
   </div>
@@ -15,6 +19,8 @@ export default {
   name: 'App',
   data(){
     return {
+      currLoginName:"",
+      currLoginAvatar:"",
       loginStatus: false,
       loginType: 'primary'
     }
@@ -29,43 +35,65 @@ export default {
          alert("连接失败");
       }
     })
+    this.$EventBus.$on('toogleLoginStatus', (data) => {
+        this.loginStatus = true;
+        this.loginType = "danger";
+    })
+    this.$EventBus.$on('toogleCurrLoginUserInfo', (data) => {
+      let userInfo = JSON.parse(localStorage.getItem("chat_user_infomation"));
+      this.currLoginName = userInfo.userName
+      this.currLoginAvatar = userInfo.avatarUrl
+    })
   },
   watch:{
-    '$store.state.userMoules.userLoginStatus'(oldVal,newVal){
-       if(newVal){
-          this.loginStatus = false;
-         this.loginType = "primary";
-       }else{
-          this.loginStatus = true;
-          this.loginType = "danger";
-       }
-    }
+    
   },
   computed:{
       ...mapGetters(['getWs','getChatList']),
+      ...mapGetters(['getUserInfomation'])
   },
   mounted(){
+    this.initData();
   },
   methods:{
     ...mapActions('wsMoules',['setChatList']),
     ...mapActions('userMoules',['setUserStatus']),
-    toggleLogin(){
-      if(this.$store.state.userMoules.userLoginStatus){
-        localStorage.setItem("token","");
-        this.setUserStatus(false);
-        this.$router.push({ path: `/` });
+    initData(){
+      this.loginStatusInit();
+    },
+    loginStatusInit(){
+      let loginStatus = localStorage.getItem("user_login_status");
+      if(loginStatus == "true" || loginStatus){
+          this.loginStatus = true;
+          this.loginType = "danger";
+      }else{
+          this.loginStatus = false;
+          this.loginType = "primary";
       }
+    },
+    toggleLogin(){
+      localStorage.setItem("user_login_status",false);
+      localStorage.setItem("token","");
+      this.$router.push({ path: `/login` });
     },
      hanndleBusiess(data){
         return new Promise(resolve => {
-            let msg = JSON.parse(data.data);
+          let json = data.data , msg = null;
+          if(json.indexOf("}") > -1 && json.indexOf("{") > -1){
+            msg = JSON.parse(data.data);
             //获取
-            let msgBody = JSON.parse(localStorage.getItem("msgbody"));
+            let msgBody = localStorage.getItem("msgbody") ? JSON.parse(localStorage.getItem("msgbody")) : [];
             msgBody.push(msg)
 
             //存储
             localStorage.setItem("msgbody",JSON.stringify(msgBody));
             resolve(msgBody);
+          }else{
+            console.log(json);
+            //获取
+            let msgBody = JSON.parse(localStorage.getItem("msgbody"));
+            resolve(msgBody);
+          }
         });
      },
      checkRoom(serverData,clientData){
@@ -111,6 +139,14 @@ input:focus, textarea:focus {
 }
 </style>
 <style scoped>
+.user{
+    width:100px;
+    display: flex;
+    flex-direction:column;
+    justify-content: center;
+    align-items: center; 
+    margin:0px auto;
+}
 .globalHanndle{
   display: flex;
   flex-direction: row-reverse;

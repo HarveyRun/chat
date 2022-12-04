@@ -5,7 +5,7 @@ const user = {
 	},
 	mutations: {
 		SET_USER_INFO(state,data){
-			state.userInfomation = data;
+			state.userInfomation = data || JSON.parse(localStorage.getItem("chat_user_infomation"));
 		},
 		SET_USER_STATUS(state,data){
 			state.userLoginStatus = data;
