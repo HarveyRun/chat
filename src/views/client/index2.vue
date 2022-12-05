@@ -6,6 +6,12 @@
         {{realtimeUserMappingInfo.sessionTalkUser.takeUserId}} -->
 
 		<div class="warp">
+            <a-page-header
+                style="border: 1px solid rgb(235, 237, 240)"
+                title="没事儿闲笔聊"
+                sub-title=""
+                @back="backChatList"
+            />
             <div class="msgwarp" id="msgwarp">
                 <div id="msgList" v-for="item in chatList" :key="item.id">
                     <!-- 左侧用户 -->
@@ -80,6 +86,11 @@ export default {
         this.currUserAvatarUrl = this.getUserInfomation.avatarUrl;
     },
     methods:{
+        backChatList(){
+            this.$router.push({
+                path: `/a`
+            });
+        },
         toogleStatus(){
             if(!this.msgContent){
                 this.isDisBtn = true;

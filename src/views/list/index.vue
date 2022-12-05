@@ -1,35 +1,27 @@
 <template>
     <div id="list" class="mt30">
         <a-list
-            class="loadmore-list"
+            class="friendlist"
             item-layout="horizontal"
             :data-source="friendsList"
         >
             <a-list-item slot="renderItem" slot-scope="item" class="itemFor" >
-                <a slot="actions" @click="deleFriend(item)">
+                <a slot="actions">
                     <a-dropdown :trigger="['click']">
                         <a class="ant-dropdown-link" @click="e => e.stopPropagation()">
                             更多操作<a-icon type="down" />
                         </a>
                         <a-menu slot="overlay">
-                            <a-menu-item key="2" @click="hotFriend(item)">
-                                标记未读
-                            </a-menu-item>
-                            <a-menu-item key="1" @click="hotUnFriend(item)">
-                                标记已读
-                            </a-menu-item>
                             <a-menu-item key="3" @click="deleFriend(item)">
                                 删除好友
                             </a-menu-item>
                         </a-menu>
                     </a-dropdown>
                 </a>
-                <a-list-item-meta description="你好" @click="startChat(item)">
-                    <h4 slot="title" href="#">{{ item.userName }}</h4>
-                    <a-badge :dot="(currIds.indexOf(item.id) != -1)" slot="avatar"><a-avatar shape="square" :src="item.email"/></a-badge>
+                <a-list-item-meta description="" @click="startChat(item)">
+                    <h4 slot="title" href="#" class="">{{ item.userName }}</h4>
+                    <a-avatar class="ml20" shape="square" slot="avatar" :src="item.email"/>
                 </a-list-item-meta>
-
-                <div>{{ item.createTime | dateFilter }}</div>
             </a-list-item>
         </a-list>
         <div class="mt30">
@@ -397,7 +389,12 @@ export default {
   padding:20px;
   border:1px solid #e8e8e8;
 }
+.friendlist {
+  border:1px solid #e8e8e8;
+  /* align-items: center; */
+}
 .itemFor{
+    height:50px;
     cursor: pointer;
 }
 .findUserInfo{

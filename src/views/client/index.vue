@@ -1,247 +1,137 @@
 <template>
-    <div id="client">
-        <img :src="realtimeUserMappingInfo.takeUserByAvatar" style="width:25px;height:25px;"/>
-		<div class="warp">
-			<div id="msgList" v-for="item in chatList" :key="item.id">
-                <!-- 左侧用户 -->
-				<div class="item" v-if="currUserId != item.takeUserId">
-					<div class="right_user">
-						<div class="main_right_user"><img :src="realtimeUserMappingInfo.takeUserByAvatar"></div>
-						<div class="chat_right">
-							<div>{{ item.content }}</div>
-						</div>
-					</div>
-				</div>
-                <!-- 右侧用户 -->
-				<div class="item" v-if="currUserId == item.takeUserId">
-					<div class="left_user">
-						<div class="chat_left">
-							<div>{{ item.content }}</div>
-						</div>
-						<div class="corr_left_user"><img :src="realtimeUserMappingInfo.takeUserAvatar"></div>
-					</div>
-				</div>
-			</div>
-			<div class="fireWarp">
-				<div class="hanndleWarp">
-					<input type="text" name="" @input="toogleStatus" class="fireMessage" v-model="msgContent">
-					<button v-show="isDisBtn" class="disFireBtn">发送</button>
-					<button v-show="!isDisBtn" @click="fire">发送</button>
-				</div>
-			</div>
-		</div>
+    <div id="chatList" class="mt30">
+        <a-list
+            class="loadmore-list"
+            item-layout="horizontal"
+            :data-source="chatList"
+        >
+            <a-list-item slot="renderItem" slot-scope="item" class="itemFor" >
+                <a slot="actions">
+                    <a-dropdown :trigger="['click']">
+                        <a class="ant-dropdown-link" @click="e => e.stopPropagation()">
+                            更多操作<a-icon type="down" />
+                        </a>
+                        <a-menu slot="overlay">
+                            <a-menu-item key="2" @click="hotChat(item)">
+                                标记未读
+                            </a-menu-item>
+                            <a-menu-item key="1" @click="hotUnChat(item)">
+                                标记已读
+                            </a-menu-item>
+                            <a-menu-item key="3" @click="deleChat(item)">
+                                删除聊天
+                            </a-menu-item>
+                        </a-menu>
+                    </a-dropdown>
+                </a>
+                <a-list-item-meta :description="item.description" @click="startChat(item)">
+                    <h4 slot="title" href="#">{{ item.userName }}</h4>
+                    <a-badge :dot="(currIds.indexOf(item.id) != -1)" slot="avatar"><a-avatar shape="square" :src="item.avatar"/></a-badge>
+                </a-list-item-meta>
+
+                <div>{{ item.createTime | dateFilter }}</div>
+            </a-list-item>
+        </a-list>
     </div>
 </template>
 
 <script>
-import { mapGetters,mapState } from "vuex";
+import { mapActions, mapGetters } from "vuex";
 export default {
-    name:"client",
+    name:"chatList",
     data () {
         return {
-            currUserId: null,
-            msgContent:"",
-            isDisBtn:true,
-            talkData: [],
-            realtimeUserMappingInfo:null
+            chatList:[{
+                id:1,
+                chatType: 1, //1 私聊 2 群聊 3 观聊
+                avatar:"https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/7098812d6f6d4d8d908deea5faab22b1~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp?",
+                userName:"",
+                description:"你好",
+                createTime: "2022-12-12 13:20:21"
+            }],
+            currIds:[],
         }
     },
     created() {
-        let realtimeUserMap = JSON.parse(localStorage.getItem('talk_realtime_user_mapping'));
-        this.realtimeUserMappingInfo = realtimeUserMap;
+        let uinfo = this.getUserInfomation ? this.getUserInfomation : JSON.parse(localStorage.getItem("chat_user_infomation"))
+        this.setUserInfo(uinfo);
     },
+    
     computed:{
-        ...mapState('wsMoules',['wsExample','chatList']),
-        ...mapGetters(['getWs','getChatList','getUserInfomation']),
-    },
-    watch:{
-      '$store.state.wsMoules.chatList'(oldList,newList){
-        console.log("最新记录");
-        console.dir(oldList);
-        console.dir(newList);
-        console.dir(this.$store.state.wsMoules.chatList);
-      }
+        ...mapGetters(['getUserInfomation']),
     },
     mounted(){
-        localStorage.setItem("msgbody",JSON.stringify([]));
-        this.currUserId = this.getUserInfomation.userId;
-        console.log("client");
+        this.initData();
     },
     methods:{
-        toogleStatus(){
-            if(!this.msgContent){
-                this.isDisBtn = true;
-            }else{
-                this.isDisBtn = false;
-            }
+        ...mapActions('userMoules',['setUserInfo']),
+        initData(){
+            this.getChatList()//获取聊天列表
         },
-        fire(){
-            let msgObj = {
-                id: new Date().getTime(),  //唯一ID
-                chatType: 1, //对话类型  1：私聊  2：群聊  3：观聊
-                takeUserId: this.realtimeUserMappingInfo.takeUserId, //发送人
-                takeUserById: this.realtimeUserMappingInfo.takeUserById, //接收人（单人）
-                byTakeUserIds: [], //接收人（多人）
-                content: this.msgContent, //信息内容
-                contentType: 1, //信息内容类型   1：文本  2：视频  3：图片  4：表情  5：文件
-                timestamp: new Date().getTime() //时间戳
-            };
-            this.getWs.send(JSON.stringify(msgObj));
-            this.clearFrieStatus();
+        getChatList(){
+            let json = JSON.parse(localStorage.getItem("chat_list_cache"));
+            this.chatList = json;
         },
-        clearFrieStatus(){
-            this.msgContent = "";
-            this.isDisBtn = true;
+        startChat(data){
+            this.$EventBus.$emit('emitAppConnect', this.getUserInfomation.userId)
+            this.$router.push({
+                path: `/b`
+            });
         },
+        deleChat(data){
+
+        },
+        hotUnChat(data){
+            this.currIds.map((val,i)=>{
+                if(val == data.id){
+                    this.currIds.splice(i,1);
+                }
+            });
+        },
+        hotChat(data){
+            debugger;
+            this.currIds.push(data.id)
+        },
+    },
+    filters: {
+        dateFilter: (data) => {
+            let sim = new Date(data).getTime(),
+                cur = new Date().getTime(),
+                val = 24 * 60 * 60 * 1000,
+                diff = cur - sim,
+                type = 0,
+                text = "";
+
+                if(diff > 0 && diff < val){
+                    type = 1; //今天
+                }else if(diff > 0 && diff > val && diff < val * 2){
+                    type = 2; //昨天
+                }else if(diff > 0 && diff > val * 3){
+                    type = 3; //显示日期
+                }
+
+                switch (type) {
+                    case 1:
+                        text = "今天";
+                        break;
+                    case "部门":
+                        text = "昨天";
+                        break;
+                    case "组别":
+                        text = "更早";
+                        break;
+                }
+            return text;
+        }
     }
 }
 </script>
-
 <style scoped>
-ul li{
-  list-style-type:none;
-  height:24px;
-  line-height: 24px;
+.loadmore-list {
+  padding:20px;
+  border:1px solid #e8e8e8;
 }
-    .warp{
-        position: relative;
-        border:2px solid #d9d9d9;
-        border-radius:5px;
-        width:420px;
-        height:800px;
-        font-size:12px;
-        margin:0px auto;
-        margin-top:50px;
-        overflow-y: scroll;
-        padding:10px;
-    }
-    .item{
-        margin-top:20px;
-    }
-    .chat_right,
-    .chat_left{
-        background-color: #ff7a45;
-        border-bottom-color: #ff7a45;
-        /*为了给after伪元素自动继承*/
-        color: #fff;
-        font-size: 12px;
-        line-height: 18px;
-        padding: 10px 12px 10px 12px;
-        box-sizing: border-box;
-        border-radius: 6px;
-        position: relative;
-        word-break: break-all;
-    }
-
-    /** 通过对小正方形旋转45度解决 **/
-    .chat_right::before {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: -5px;
-        width: 10px;
-        height: 10px;
-        margin-top: -5px;
-        background: inherit;
-        transform: rotate(45deg);
-    }
-
-    /** 通过对小正方形旋转45度解决 **/
-    .chat_left::before {
-        content: '';
-        position: absolute;
-        top: 50%;
-        right: -5px;
-        width: 10px;
-        height: 10px;
-        margin-top: -5px;
-        background: inherit;
-        transform: rotate(45deg);
-    }
-
-    .right_user{
-        display: flex;
-        justify-content: flex-start;
-        align-items: center;
-
-    }
-    .main_right_user{
-        width:34px;
-        height:34px;
-        border-radius: 50%;
-        background: black;
-        overflow: hidden;
-        flex-shrink:0;
-
-    }
-    .main_right_user img{
-        width:100%;
-        height:100%;
-    }
-    .chat_right{
-        margin-left: 15px;
-        margin-right: 46px;
-        text-align: left;
-    }
-
-    .left_user{
-        display: flex;
-        justify-content: flex-end;
-        align-items: center;
-    }
-    .corr_left_user{
-        width:34px;
-        height:34px;
-        border-radius: 50%;
-        background: black;
-        overflow: hidden;
-        flex-shrink:0;
-    }
-    .corr_left_user img{
-        width:100%;
-        height:100%;
-    }
-    .chat_left{
-        text-align: right;
-        margin-right: 15px;
-        margin-left: 46px;
-    }
-    .fireWarp{
-        width:100%;
-        position: absolute;
-        width: 100%;
-        left: 0px;
-        bottom: 0px;
-    }
-    .hanndleWarp{
-        width:100%;
-        display: flex;
-        justify-content: flex-start;
-        align-items: center;
-    }
-    .hanndleWarp input{
-        width:100%;
-        font-size:14px;
-        border:none;
-        border-top:2px solid #d9d9d9;
-        padding:10px;
-        color:#262626;
-    }
-    .hanndleWarp button{
-        width:95px;
-        border:none;
-        border-bottom-right-radius: 4px;
-        background-color: #ffa940;
-        border-top:2px solid #ffa940;
-        padding:10px;
-        color:#fff;
-        font-size:13px;
-        flex-shrink:0;
-        cursor: pointer;
-    }
-    .hanndleWarp button.disFireBtn{
-        background-color: #bfbfbf;
-        border-top:2px solid #bfbfbf;
-        cursor: default;
-    }
+.itemFor{
+    cursor: pointer;
+}
 </style>
